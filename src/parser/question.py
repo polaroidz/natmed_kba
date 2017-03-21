@@ -6,3 +6,15 @@ import difflib
 
 def compile(question):
     return "Compiled Question"
+
+ENTITY_LIST = [
+    'Medicine',
+    'Disease',
+    'Food',
+    'Context',
+    'HerbSuplement',
+    'LaboratoryTest',
+    'Pharmacokinetics',
+    'ScientificName',
+    'Synonymous'
+]
