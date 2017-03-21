@@ -1,5 +1,5 @@
 from src.agent.action import Action
-from src.parser import parser
+from src.parser import question
 
 def perceive(stimuli):
     """ The sensor function of the agent, he will
@@ -8,8 +8,8 @@ def perceive(stimuli):
         utility function.
     """
     if stimuli.get('type') == 'QUESTION':
-        question = parser.compile(stimuli.get('data.question'))
-        action = Action(question)
+        compiled_question = question.compile(stimuli.get('data.question'))
+        action = Action(compiled_question)
 
     return action
 
