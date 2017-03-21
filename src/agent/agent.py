@@ -7,9 +7,11 @@ def perceive(stimuli):
         Action to be taken in accordance to its
         utility function.
     """
-    question = parser.compile(stimuli['question'])
+    if stimuli.get('type') == 'QUESTION':
+        question = parser.compile(stimuli.get('data.question'))
+        action = Action(question)
 
-    return Action(question)
+    return action
 
 def utility(stimuli, action):
     """ Returns how the action would perform based
