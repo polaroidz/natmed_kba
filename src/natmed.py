@@ -1,5 +1,10 @@
+import atexit
 from flask import Flask, request
 from src.agent import agent
+from neo4j.v1 import GraphDatabase, basic_auth
+
+neo4j_driver = GraphDatabase.driver("bolt://localhost:7687", auth=basic_auth("neo4j", "naturalmed"))
+neo4j = neo4j_driver.session()
 
 app = Flask(__name__)
 
@@ -14,3 +19,8 @@ def perceive():
     stimuli = request.json
     action = agent.perceive(stimuli)
     return action.to_json()
+
+def close_connections():
+    neo4j.close()
+
+atexit.register(close_connections)
