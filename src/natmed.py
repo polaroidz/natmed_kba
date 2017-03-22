@@ -21,6 +21,6 @@ def perceive():
     return action.to_json()
 
 def close_connections():
-    neo4j.close()
+    kgraph.close()
 
 atexit.register(close_connections)
