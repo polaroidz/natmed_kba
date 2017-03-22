@@ -62,10 +62,10 @@ def compare(arr, string):
         yield sm.ratio()
 
 QUESTIONS = [
-    # What Is Questions
-    ('What is ([A-Z].*)\?', 'WHAT_IS'),
     # Simple Relation Questions
-    ('What is the relation between ([A-Z].*) and ([A-Z].*)\?', 'SIMPLE_RELATION'),
-    ('How are ([A-Z].*) and ([A-Z].*) related\?', 'SIMPLE_RELATION'),
-    ('Is ([A-Z].*) related to ([A-Z].*)\?', 'SIMPLE_RELATION')
+    ('What is the relation between (.*) and (.*)\?', 'SIMPLE_RELATION'),
+    ('How are (.*) and (.*) related\?', 'SIMPLE_RELATION'),
+    ('Is (.*) related to (.*)\?', 'SIMPLE_RELATION'),
+    # What Is Questions
+    ('What is (.*)\?', 'WHAT_IS')
 ]
