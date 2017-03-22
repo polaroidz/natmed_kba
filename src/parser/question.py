@@ -13,8 +13,23 @@ if not path.isfile(ENTITIES_PATH):
 with open(ENTITIES_PATH, "rb") as fb:
     entities = pickle.load(fb)
 
+def compile(question):
+    return "Compiled Question"
 
-def comp_str(arr, string):
+
+def match(string):
+    """ Compiles a question and returns a list of the entities matched on it.
+    """
+    for question in QUESTIONS:
+        matching = re.match(question[0], string) 
+        if matching:
+            return { 
+                'type': question[1],
+                'question': string,
+                'entities': list(matching.groups()) }
+    return None
+
+def compare(arr, string):
     """ Compare the matching from 0 to 1 between two strings
     """
     sm = difflib.SequenceMatcher(None)
@@ -24,9 +39,6 @@ def comp_str(arr, string):
         sm.set_seq2(string)
         
         yield sm.ratio()
-
-def compile(question):
-    return "Compiled Question"
 
 QUESTIONS = [
     # What Is Questions
