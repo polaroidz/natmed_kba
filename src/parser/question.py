@@ -13,6 +13,18 @@ if not path.isfile(ENTITIES_PATH):
 with open(ENTITIES_PATH, "rb") as fb:
     entities = pickle.load(fb)
 
+
+def comp_str(arr, string):
+    """ Compare the matching from 0 to 1 between two strings
+    """
+    sm = difflib.SequenceMatcher(None)
+    
+    for el in arr:
+        sm.set_seq1(str(el))
+        sm.set_seq2(string)
+        
+        yield sm.ratio()
+
 def compile(question):
     return "Compiled Question"
 
