@@ -1,4 +1,4 @@
-from src.agent.action import Action
+from src.agent.action import AnswerAction
 from src.parser import question
 
 def perceive(stimuli):
@@ -9,7 +9,8 @@ def perceive(stimuli):
     """
     if stimuli.get('type') == 'QUESTION':
         compiled_question = question.compile(stimuli['data'].get('question'))
-        action = Action(compiled_question)
+        action = AnswerAction(compiled_question)
+        action.act()
 
     return action
 
