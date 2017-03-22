@@ -35,7 +35,7 @@ def match(string):
                     o['scored'].append({
                         'entity': row['entity'],
                         'class': row['type'],
-                        'confidence': float(row['confidence'])
+                        'confidence': round(row['confidence'] * 100)
                     })
 
                 res['entities'].append(o)
@@ -47,19 +47,24 @@ def match(string):
 def score(entity):
     """ Scores the entity in relation to the entities table
     """
-    entities['confidence'] = list(compare(entities['entity'], entity.title()))
+    entities['confidence'] = compare(entities['entity'], entity.title())
     return entities.sort_values(by='confidence', ascending=False).head(n=5)
 
 def compare(arr, string):
-    """ Compare the matching from 0 to 1 between two strings
+    """ Compare the matching from 0 to 1 between one string
+        and all other strings containing on the array provided.
+        Returning a panda.Series with all respective ratios.
     """
+    ratios = []
     sm = difflib.SequenceMatcher(None)
     
     for el in arr:
         sm.set_seq1(str(el))
         sm.set_seq2(string)
         
-        yield sm.ratio()
+        ratios.append(sm.ratio())
+    
+    return pd.Series(ratios)
 
 QUESTIONS = [
     # Simple Relation Questions
