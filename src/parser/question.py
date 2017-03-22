@@ -5,8 +5,13 @@ import pickle
 import re
 import difflib
 
-if not path.isfile('./assets/dumps/entities.pickle'):
+ENTITIES_PATH = './assets/dumps/entities.pickle'
+
+if not path.isfile(ENTITIES_PATH):
     raise Exception("Entities pickle file not found!")
+
+with open(ENTITIES_PATH, "rb") as fb:
+    entities = pickle.load(fb)
 
 def compile(question):
     return "Compiled Question"
