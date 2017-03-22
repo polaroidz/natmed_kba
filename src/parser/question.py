@@ -14,8 +14,7 @@ with open(ENTITIES_PATH, "rb") as fb:
     entities = pickle.load(fb)
 
 def compile(question):
-    return "Compiled Question"
-
+    return match(question)
 
 def match(string):
     """ Compiles a question and returns a list of the entities matched on it.
@@ -23,11 +22,33 @@ def match(string):
     for question in QUESTIONS:
         matching = re.match(question[0], string) 
         if matching:
-            return { 
-                'type': question[1],
+            res = { 
+                'type': question[1], 
                 'question': string,
-                'entities': list(matching.groups()) }
+                'entities': [] }
+
+            for entity in list(matching.groups()):
+                o = { 'extracted': entity, 'scored': [] }
+                score_table = score(entity)
+                
+                for index, row in score_table.iterrows():
+                    o['scored'].append({
+                        'entity': row['entity'],
+                        'class': row['type'],
+                        'confidence': float(row['confidence'])
+                    })
+
+                res['entities'].append(o)
+
+            return res
     return None
+
+
+def score(entity):
+    """ Scores the entity in relation to the entities table
+    """
+    entities['confidence'] = list(compare(entities['entity'], entity.title()))
+    return entities.sort_values(by='confidence', ascending=False).head(n=5)
 
 def compare(arr, string):
     """ Compare the matching from 0 to 1 between two strings

@@ -8,7 +8,7 @@ def perceive(stimuli):
         utility function.
     """
     if stimuli.get('type') == 'QUESTION':
-        compiled_question = question.compile(stimuli.get('data.question'))
+        compiled_question = question.compile(stimuli['data'].get('question'))
         action = Action(compiled_question)
 
     return action
