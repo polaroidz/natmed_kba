@@ -49,7 +49,7 @@ def score(entity):
     """
     entity = entity.title()
     return entities.assign(
-               confidence=entities['entity'].map(lambda e: similar(e, entity))
+               confidence=entities['entity'].map(lambda e: compare(e, entity))
            ).sort_values(by='confidence', ascending=False).head(n=5)
 
 def compare(w1, w2):
