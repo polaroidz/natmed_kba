@@ -48,17 +48,16 @@ def score(entity):
     """ Scores the entity in relation to the entities table
     """
     entity = entity.title()
-    return entities.assign(confidence=compare(entities['entity'], entity)).sort_values(by='confidence', ascending=False).head(n=5)
+    return entities.assign(
+               confidence=entities['entity'].map(lambda e: similar(e, entity))
+           ).sort_values(by='confidence', ascending=False).head(n=5)
 
-def compare(this, other):
-    """ Compare the matching from 0 to 1 between two strings.
+def compare(w1, w2):
+    """ Compares the similarity between two strings
     """
-    sm = difflib.SequenceMatcher(None)
-    
-    sm.set_seq1(str(this))
-    sm.set_seq2(other)
-
-    return sm.ratio()
+    w1 = w1 + ' ' * (len(w2) - len(w1))
+    w2 = w2 + ' ' * (len(w1) - len(w2))
+    return sum(1 if i == j else 0 for i, j in zip(w1, w2)) / float(len(w1))
 
 QUESTIONS = [
     # Simple Relation Questions
