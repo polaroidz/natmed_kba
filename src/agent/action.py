@@ -1,4 +1,5 @@
 import json
+from src.natmed import kgraph
 
 class Action(object):
     def __init__(self):
@@ -15,7 +16,10 @@ class AnswerAction(Action):
         self.question = question
 
     def act(self):
-        pass
+        if self.question['type'] == 'WHAT_IS':
+            pass
+        elif self.question['type'] == 'SIMPLE_RELATION':
+            pass
 
     def to_json(self):
         return json.dumps(self.question, indent=True)
