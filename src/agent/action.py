@@ -24,12 +24,18 @@ class AnswerAction(Action):
             self.answer['class'] = entity['class']
 
             if entity['class'] == 'Medicine':
-                query = kgraph.run("MATCH (n:Medicine {name: '%s'}) RETURN n" % entity['entity'])
+                query = kgraph.run("MATCH (n:Medicine {name: {med}}) RETURN n", med=entity['entity'])
                 node = query.single().values()[0]
 
                 self.answer['description'] = node.get('description')
                 self.answer['family_name'] = node.get('family_name')
                 self.answer['used_for'] = node.get('used_for')
+                self.answer['history'] = node.get('history')
+
+                query = kgraph.run("""MATCH (n:Medicine {name: {med}})-->(syn:Synonymous) 
+                                      RETURN syn""", med=entity['entity'])
+
+                self.answer['synonymous'] = [e['syn']['id'] for e in query]
 
         elif self.question['type'] == 'SIMPLE_RELATION':
             pass
