@@ -24,21 +24,33 @@ class AnswerAction(Action):
             self.answer['class'] = entity['class']
 
             if entity['class'] == 'Medicine':
-                query = kgraph.run("MATCH (n:Medicine {name: {med}}) RETURN n", med=entity['entity'])
-                node = query.single().values()[0]
-
-                self.answer['description'] = node.get('description')
-                self.answer['family_name'] = node.get('family_name')
-                self.answer['used_for'] = node.get('used_for')
-                self.answer['history'] = node.get('history')
-
-                query = kgraph.run("""MATCH (n:Medicine {name: {med}})-->(syn:Synonymous) 
-                                      RETURN syn""", med=entity['entity'])
-
-                self.answer['synonymous'] = [e['syn']['id'] for e in query]
+                self.get_medicine_info(entity['entity'])
+                self.get_medicine_synonymous(entity['entity'])
+                self.get_medicine_scientific_names(entity['entity'])
 
         elif self.question['type'] == 'SIMPLE_RELATION':
             pass
+    
+    def get_medicine_info(self, medicine):
+        query = kgraph.run("MATCH (n:Medicine {name: {med}}) RETURN n", med=medicine)
+        node = query.single().values()[0]
+
+        self.answer['description'] = node.get('description')
+        self.answer['family_name'] = node.get('family_name')
+        self.answer['used_for'] = node.get('used_for')
+        self.answer['history'] = node.get('history')
+
+    def get_medicine_synonymous(self, medicine):
+        query = kgraph.run("""MATCH (n:Medicine {name: {med}})-->(syn:Synonymous) 
+                                RETURN syn.id""", med=medicine)
+
+        self.answer['synonymous'] = [id.values()[0] for id in query]
+
+    def get_medicine_scientific_names(self, medicine):
+        query = kgraph.run("""MATCH (n:Medicine {name: {med}})-->(scy:ScientificName) 
+                                RETURN scy.id""", med=medicine)
+
+        self.answer['scientific_names'] = [id.values()[0] for id in query]
 
     def to_json(self):
         obj = { 'question': self.question, 'answer': self.answer }
