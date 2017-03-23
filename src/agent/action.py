@@ -14,12 +14,26 @@ class Action(object):
 class AnswerAction(Action):
     def __init__(self, question):
         self.question = question
+        self.answer = {}
 
     def act(self):
         if self.question['type'] == 'WHAT_IS':
-            pass
+            entity = self.question['entities'][0]['scored'][0]
+
+            self.answer['entity'] = entity['entity']
+            self.answer['class'] = entity['class']
+
+            if entity['class'] == 'Medicine':
+                query = kgraph.run("MATCH (n:Medicine {name: '%s'}) RETURN n" % entity['entity'])
+                node = query.single().values()[0]
+
+                self.answer['description'] = node.get('description')
+                self.answer['family_name'] = node.get('family_name')
+                self.answer['used_for'] = node.get('used_for')
+
         elif self.question['type'] == 'SIMPLE_RELATION':
             pass
 
     def to_json(self):
-        return json.dumps(self.question, indent=True)
+        obj = { 'question': self.question, 'answer': self.answer }
+        return json.dumps(obj, indent=True)
