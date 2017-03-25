@@ -1,11 +1,13 @@
 import atexit
 from flask import Flask, request
+from flask_cors import CORS
 from neo4j.v1 import GraphDatabase, basic_auth
 
 kgraph_driver = GraphDatabase.driver("bolt://localhost:7687", auth=basic_auth("neo4j", "naturalmed"))
 kgraph = kgraph_driver.session()
 
 app = Flask(__name__)
+CORS(app)
 
 from src.agent import agent
 
