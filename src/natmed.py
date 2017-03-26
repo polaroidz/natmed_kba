@@ -1,5 +1,5 @@
 import atexit
-from flask import Flask, request
+from flask import Flask, request, Response
 from flask_cors import CORS
 from neo4j.v1 import GraphDatabase, basic_auth
 
@@ -21,7 +21,7 @@ def perceive():
     """
     stimuli = request.json
     action = agent.perceive(stimuli)
-    return action.to_json()
+    return Response(action.to_json(), mimetype='application/json')
 
 def close_connections():
     kgraph.close()

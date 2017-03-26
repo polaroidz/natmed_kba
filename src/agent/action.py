@@ -27,10 +27,22 @@ class AnswerAction(Action):
                 self.get_medicine_info(entity['entity'])
                 self.get_medicine_synonymous(entity['entity'])
                 self.get_medicine_scientific_names(entity['entity'])
-
+            
+            if entity['class'] == 'Synonymous' or entity['class'] == 'ScientificName':
+                medicine = self.get_medicine_from(entity)
+                self.answer['medicine'] = medicine.get('name')
+            
+                
         elif self.question['type'] == 'SIMPLE_RELATION':
             pass
     
+    def get_medicine_from(self, entity):
+        query = kgraph.run("""MATCH (n:%s {id: "%s"})
+                              MATCH (m:Medicine)-[:ALSO_KNOW_AS]->(n)
+                              RETURN m""" % (entity['class'], entity['entity']))
+        node = query.single().values()[0]
+        return node
+
     def get_medicine_info(self, medicine):
         query = kgraph.run("MATCH (n:Medicine {name: {med}}) RETURN n", med=medicine)
         node = query.single().values()[0]
@@ -54,4 +66,4 @@ class AnswerAction(Action):
 
     def to_json(self):
         obj = { 'question': self.question, 'answer': self.answer }
-        return json.dumps(obj, indent=True)
+        return json.dumps(obj)
