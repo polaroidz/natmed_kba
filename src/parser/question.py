@@ -38,6 +38,11 @@ def match(string):
                         'confidence': round(row['confidence'] * 100)
                     })
 
+                if o['scored'][0]['class'] != 'Medicine' and o['scored'][1]['class'] == 'Medicine' and o['scored'][0]['entity'] == o['scored'][1]['entity']:
+                    aux = o['scored'][0]
+                    o['scored'][0] = o['scored'][1]
+                    o['scored'][1] = aux
+
                 res['entities'].append(o)
 
             return res
