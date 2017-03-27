@@ -43,19 +43,23 @@ class AnswerAction(Action):
         b = (entity2['class'], 'name' if entity2['class'] == 'Medicine' else 'id', entity2['entity'])
         query = kgraph.run("""MATCH (a:%s {%s:"%s"})
                               MATCH (b:%s {%s:"%s"})
-                              MATCH (a)-[]->(i)-[]->(b)
-                              MATCH (i)<-[]-(r:Reference)
-                              RETURN a, i, b, r""" % (a + b))
+                              MATCH (a)-[r1]->(i)-[r2]->(b)
+                              MATCH (i)<-[]-(ref:Reference)
+                              OPTIONAL MATCH (i)-[]->(ctx:Context)
+                              RETURN a, i, b, collect(ref), ctx.id, labels(i), type(r1), type(r2)""" % (a + b))
         relations = []
 
         for row in query:
             values = row.values()
             relation = {
                 'info': dict(values[1].items()),
-                'references': dict(values[3].items())
-            }
-
-            print(relation)
+                'info_label': values[5][0],
+                'references': [dict(e.items()) for e in values[3]],
+                'context': values[4],
+                'relation_labels': [
+                    values[6],
+                    values[7]
+                ]}
 
             relations.append(relation)
 
