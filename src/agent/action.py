@@ -32,10 +32,35 @@ class AnswerAction(Action):
                 medicine = self.get_medicine_from(entity)
                 self.answer['medicine'] = medicine.get('name')
             
-                
         elif self.question['type'] == 'SIMPLE_RELATION':
-            pass
+            entity1 = self.question['entities'][0]['scored'][0]
+            entity2 = self.question['entities'][1]['scored'][0]
+
+            self.get_relation_between(entity1, entity2)
     
+    def get_relation_between(self, entity1, entity2):
+        a = (entity1['class'], 'name' if entity1['class'] == 'Medicine' else 'id', entity1['entity'])
+        b = (entity2['class'], 'name' if entity2['class'] == 'Medicine' else 'id', entity2['entity'])
+        query = kgraph.run("""MATCH (a:%s {%s:"%s"})
+                              MATCH (b:%s {%s:"%s"})
+                              MATCH (a)-[]->(i)-[]->(b)
+                              MATCH (i)<-[]-(r:Reference)
+                              RETURN a, i, b, r""" % (a + b))
+        relations = []
+
+        for row in query:
+            values = row.values()
+            relation = {
+                'info': dict(values[1].items()),
+                'references': dict(values[3].items())
+            }
+
+            print(relation)
+
+            relations.append(relation)
+
+        self.answer['relations'] = relations
+
     def get_medicine_from(self, entity):
         query = kgraph.run("""MATCH (n:%s {id: "%s"})
                               MATCH (m:Medicine)-[:ALSO_KNOW_AS]->(n)
