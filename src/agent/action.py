@@ -36,17 +36,29 @@ class AnswerAction(Action):
             entity1 = self.question['entities'][0]['scored'][0]
             entity2 = self.question['entities'][1]['scored'][0]
 
-            self.get_relation_between(entity1, entity2)
+            if entity1['class'] == 'Medicine' or entity2['class'] == 'Medicine':
+                if entity1['class'] == 'Disease' or entity2['class'] == 'Disease':
+                    medicine = entity1['entity'] if entity1['class'] == 'Medicine' else entity2['entity']
+                    disease = entity1['entity'] if entity1['class'] == 'Disease' else entity2['entity']
+                    
+                    self.get_relation_medicine_to_disease(medicine, disease)
+                
+                if entity1['class'] == 'Drug' or entity2['class'] == 'Drug':
+                    medicine = entity1['entity'] if entity1['class'] == 'Medicine' else entity2['entity']
+                    drug = entity1['entity'] if entity1['class'] == 'Drug' else entity2['entity']
+                    
+                    self.get_relation_medicine_to_drug(medicine, drug)
     
-    def get_relation_between(self, entity1, entity2):
-        a = (entity1['class'], 'name' if entity1['class'] == 'Medicine' else 'id', entity1['entity'])
-        b = (entity2['class'], 'name' if entity2['class'] == 'Medicine' else 'id', entity2['entity'])
-        query = kgraph.run("""MATCH (a:%s {%s:"%s"})
-                              MATCH (b:%s {%s:"%s"})
+    def get_relation_medicine_to_drug(self, medicine, drug):
+        pass
+
+    def get_relation_medicine_to_disease(self, medicine, disease):
+        query = kgraph.run("""MATCH (a:Medicine {name:"%s"})
+                              MATCH (b:Disease {id:"%s"})
                               MATCH (a)-[r1]->(i)-[r2]->(b)
                               MATCH (i)<-[]-(ref:Reference)
                               OPTIONAL MATCH (i)-[]->(ctx:Context)
-                              RETURN a, i, b, collect(ref), ctx.id, labels(i), type(r1), type(r2)""" % (a + b))
+                              RETURN a, i, b, collect(ref), ctx.id, labels(i), type(r1), type(r2)""" % (medicine, disease))
         relations = []
 
         for row in query:
@@ -63,6 +75,7 @@ class AnswerAction(Action):
 
             relations.append(relation)
 
+        self.answer['relation_type'] = 'MEDICINE_TO_DISEASE'
         self.answer['relations'] = relations
 
     def get_medicine_from(self, entity):
