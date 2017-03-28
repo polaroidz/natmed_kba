@@ -36,6 +36,9 @@ class AnswerAction(Action):
             entity1 = self.question['entities'][0]['scored'][0]
             entity2 = self.question['entities'][1]['scored'][0]
 
+            self.answer['entity1'] = entity1
+            self.answer['entity2'] = entity2
+
             if entity1['class'] == 'Medicine' or entity2['class'] == 'Medicine':
                 if entity1['class'] == 'Disease' or entity2['class'] == 'Disease':
                     medicine = entity1['entity'] if entity1['class'] == 'Medicine' else entity2['entity']
