@@ -1,5 +1,6 @@
 import json
 from src.natmed import kgraph
+import src.kbase as kbase
 
 class Action(object):
     def __init__(self):
@@ -15,100 +16,73 @@ class AnswerAction(Action):
     def __init__(self, question):
         self.question = question
         self.answer = {}
+        self.follow_up = {}
 
     def act(self):
         if self.question['type'] == 'WHAT_IS':
-            entity = self.question['entities'][0]['scored'][0]
-
-            self.answer['entity'] = entity['entity']
-            self.answer['class'] = entity['class']
-
-            if entity['class'] == 'Medicine':
-                self.get_medicine_info(entity['entity'])
-                self.get_medicine_synonymous(entity['entity'])
-                self.get_medicine_scientific_names(entity['entity'])
-            
-            if entity['class'] == 'Synonymous' or entity['class'] == 'ScientificName':
-                medicine = self.get_medicine_from(entity)
-                self.answer['medicine'] = medicine.get('name')
-            
+            self.what_is()
         elif self.question['type'] == 'SIMPLE_RELATION':
-            entity1 = self.question['entities'][0]['scored'][0]
-            entity2 = self.question['entities'][1]['scored'][0]
+            self.simple_relation()
 
-            self.answer['entity1'] = entity1
-            self.answer['entity2'] = entity2
+    def what_is(self):
+        entity = self.question['entities'][0]['scored'][0]
 
-            if entity1['class'] == 'Medicine' or entity2['class'] == 'Medicine':
-                if entity1['class'] == 'Disease' or entity2['class'] == 'Disease':
-                    medicine = entity1['entity'] if entity1['class'] == 'Medicine' else entity2['entity']
-                    disease = entity1['entity'] if entity1['class'] == 'Disease' else entity2['entity']
-                    
-                    self.get_relation_medicine_to_disease(medicine, disease)
-                
-                if entity1['class'] == 'Drug' or entity2['class'] == 'Drug':
-                    medicine = entity1['entity'] if entity1['class'] == 'Medicine' else entity2['entity']
-                    drug = entity1['entity'] if entity1['class'] == 'Drug' else entity2['entity']
-                    
-                    self.get_relation_medicine_to_drug(medicine, drug)
+        self.answer['entity'] = entity['entity']
+        self.answer['class'] = entity['class']
+
+        if entity['class'] == 'Medicine':
+            self.what_is_medicine(entity['entity'])
+
+        if self.is_synonymous(entity['class']):
+            self.what_is_synonymous(entity['entity'])
     
-    def get_relation_medicine_to_drug(self, medicine, drug):
-        pass
+    def simple_relation(self):
+        entity1 = self.question['entities'][0]['scored'][0]
+        entity2 = self.question['entities'][1]['scored'][0]
 
-    def get_relation_medicine_to_disease(self, medicine, disease):
-        query = kgraph.run("""MATCH (a:Medicine {name:"%s"})
-                              MATCH (b:Disease {id:"%s"})
-                              MATCH (a)-[r1]->(i)-[r2]->(b)
-                              MATCH (i)<-[]-(ref:Reference)
-                              OPTIONAL MATCH (i)-[]->(ctx:Context)
-                              RETURN a, i, b, collect(ref), ctx.id, labels(i), type(r1), type(r2)""" % (medicine, disease))
-        relations = []
+        self.answer['entity1'] = entity1
+        self.answer['entity2'] = entity2
 
-        for row in query:
-            values = row.values()
-            relation = {
-                'info': dict(values[1].items()),
-                'info_label': values[5][0],
-                'references': [dict(e.items()) for e in values[3]],
-                'context': values[4],
-                'relation_labels': [
-                    values[6],
-                    values[7]
-                ]}
+        if self.some_class(entity1, entity1, 'Medicine'):
+            if self.some_class(entity1, entity2, 'Disease'):
+                medicine = self.which_class(entity1, entity2, 'Medicine')
+                disease = self.which_class(entity1, entity2, 'Disease')
 
-            relations.append(relation)
+                relations = kbase.medicine.relation_disease(medicine, disease)
 
-        self.answer['relation_type'] = 'MEDICINE_TO_DISEASE'
-        self.answer['relations'] = relations
+                self.answer.update(relations)
 
-    def get_medicine_from(self, entity):
-        query = kgraph.run("""MATCH (n:%s {id: "%s"})
-                              MATCH (m:Medicine)-[:ALSO_KNOW_AS]->(n)
-                              RETURN m""" % (entity['class'], entity['entity']))
-        node = query.single().values()[0]
-        return node
+    def some_class(self, e1, e2, _class):
+        return e1['class'] == _class or e2['class'] == _class
 
-    def get_medicine_info(self, medicine):
-        query = kgraph.run("MATCH (n:Medicine {name: {med}}) RETURN n", med=medicine)
-        node = query.single().values()[0]
+    def which_class(self, e1, e2, _class):
+        if e1['class'] == _class:
+            return e1['entity']
+        else:
+            return e2['entity']
 
-        self.answer['description'] = node.get('description')
-        self.answer['family_name'] = node.get('family_name')
-        self.answer['used_for'] = node.get('used_for')
-        self.answer['history'] = node.get('history')
+    def what_is_medicine(self, medicine):
+        info = kbase.medicine.info(medicine)
 
-    def get_medicine_synonymous(self, medicine):
-        query = kgraph.run("""MATCH (n:Medicine {name: {med}})-->(syn:Synonymous) 
-                                RETURN syn.id""", med=medicine)
+        self.answer['description'] = info.get('description')
+        self.answer['family_name'] = info.get('family_name')
+        self.answer['used_for'] = info.get('used_for')
+        self.answer['history'] = info.get('history')
 
-        self.answer['synonymous'] = [id.values()[0] for id in query]
+        self.answer['synonymous'] = kbase.medicine.synonymous(medicine)
+        self.answer['scientific_names'] = kbase.medicine.scientific_names(medicine)
 
-    def get_medicine_scientific_names(self, medicine):
-        query = kgraph.run("""MATCH (n:Medicine {name: {med}})-->(scy:ScientificName) 
-                                RETURN scy.id""", med=medicine)
-
-        self.answer['scientific_names'] = [id.values()[0] for id in query]
+    def what_is_synonymous(self, name):
+        medicine = kbase.medicine.from_other_name(name)
+        self.answer['medicine'] = medicine.get('name')
+    
+    def is_synonymous(self, _class):
+        return _class == 'Synonymous' or _class == 'ScientificName'
 
     def to_json(self):
-        obj = { 'question': self.question, 'answer': self.answer }
+        obj = { 
+            'question': self.question, 
+            'answer': self.answer,
+            'follow_up': self.follow_up }
+
         return json.dumps(obj)
