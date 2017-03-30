@@ -1,6 +1,8 @@
 import json
+import random
 from src.natmed import kgraph
 import src.kbase as kbase
+import src.parser.summary as summary
 
 class Action(object):
     def __init__(self):
@@ -15,6 +17,7 @@ class Action(object):
 class AnswerAction(Action):
     def __init__(self, question):
         self.question = question
+        self.metadata = {}
         self.answer = {}
         self.follow_up = {}
 
@@ -27,8 +30,8 @@ class AnswerAction(Action):
     def what_is(self):
         entity = self.question['entities'][0]['scored'][0]
 
-        self.answer['entity'] = entity['entity']
-        self.answer['class'] = entity['class']
+        self.metadata['entity'] = entity['entity']
+        self.metadata['class'] = entity['class']
 
         if entity['class'] == 'Medicine':
             self.what_is_medicine(entity['entity'])
@@ -40,8 +43,8 @@ class AnswerAction(Action):
         entity1 = self.question['entities'][0]['scored'][0]
         entity2 = self.question['entities'][1]['scored'][0]
 
-        self.answer['entity1'] = entity1
-        self.answer['entity2'] = entity2
+        self.metadata['entity1'] = entity1
+        self.metadata['entity2'] = entity2
 
         if self.some_class(entity1, entity1, 'Medicine'):
             if self.some_class(entity1, entity2, 'Disease'):
@@ -50,7 +53,54 @@ class AnswerAction(Action):
 
                 relations = kbase.medicine.relation_disease(medicine, disease)
 
-                self.answer.update(relations)
+                self.metadata['relation_type'] = 'MEDICINE_TO_DISEASE'
+                self.metadata['groups'] = self.group_relations(relations)
+
+                sl_group = self.random_select(self.metadata['groups'])
+
+                self.answer['text'] = summary.summarize(sl_group['content']['info']['text'])
+
+    def random_select(self, collection):
+        return collection[random.randint(0, len(collection) - 1)]
+
+    def group_relations(self, relations):
+        infos = []
+        dosings = []
+
+        for relation in relations:
+            if relation['info_label'] == 'DosingInfo':
+                dosings.append(relation)
+            else:
+                infos.append(relation)
+        
+        groups = []
+
+        for info in infos:
+            group = { 
+                'content': info, 
+                'dosage': self.closest_info(info, dosings) }
+            
+            groups.append(group)
+        
+        return groups
+
+    def closest_info(self, info, others):
+        max_match = 0
+        s_info = None
+
+        for other_info in others:
+            matched = 0
+
+            for ref1 in info['references']:
+                for ref2 in other_info['references']:
+                    if ref1['id'] == ref2['id']:
+                        matched += 1
+            
+            if matched > max_match:
+                s_info = other_info
+                max_match = matched
+        
+        return s_info
 
     def some_class(self, e1, e2, _class):
         return e1['class'] == _class or e2['class'] == _class
@@ -64,17 +114,19 @@ class AnswerAction(Action):
     def what_is_medicine(self, medicine):
         info = kbase.medicine.info(medicine)
 
-        self.answer['description'] = info.get('description')
-        self.answer['family_name'] = info.get('family_name')
-        self.answer['used_for'] = info.get('used_for')
-        self.answer['history'] = info.get('history')
+        self.metadata['description'] = info.get('description')
+        self.metadata['family_name'] = info.get('family_name')
+        self.metadata['used_for'] = info.get('used_for')
+        self.metadata['history'] = info.get('history')
 
-        self.answer['synonymous'] = kbase.medicine.synonymous(medicine)
-        self.answer['scientific_names'] = kbase.medicine.scientific_names(medicine)
+        self.metadata['synonymous'] = kbase.medicine.synonymous(medicine)
+        self.metadata['scientific_names'] = kbase.medicine.scientific_names(medicine)
+
+        self.answer['text'] = summary.first_sentence(info.get('description'))
 
     def what_is_synonymous(self, name):
         medicine = kbase.medicine.from_other_name(name)
-        self.answer['medicine'] = medicine.get('name')
+        self.metadata['medicine'] = medicine.get('name')
     
     def is_synonymous(self, _class):
         return _class == 'Synonymous' or _class == 'ScientificName'
@@ -82,6 +134,7 @@ class AnswerAction(Action):
     def to_json(self):
         obj = { 
             'question': self.question, 
+            'metadata': self.metadata,
             'answer': self.answer,
             'follow_up': self.follow_up }
 
