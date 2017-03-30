@@ -47,6 +47,4 @@ def relation_disease(medicine, disease):
 
         relations.append(relation)
 
-    return {
-        'relation_type': 'MEDICINE_TO_DISEASE',
-        'relations': relations }
+    return relations
