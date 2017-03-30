@@ -58,7 +58,7 @@ class AnswerAction(Action):
 
                 sl_group = self.random_select(self.metadata['groups'])
 
-                self.answer['text'] = summary.summarize(sl_group['content']['info']['text'])
+                self.answer['text'] = sl_group['summary']
 
     def random_select(self, collection):
         return collection[random.randint(0, len(collection) - 1)]
@@ -77,6 +77,7 @@ class AnswerAction(Action):
 
         for info in infos:
             group = { 
+                'summary': summary.summarize(info['info']['text']),
                 'content': info, 
                 'dosage': self.closest_info(info, dosings) }
             
