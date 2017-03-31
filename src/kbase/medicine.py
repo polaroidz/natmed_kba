@@ -48,3 +48,21 @@ def relation_disease(medicine, disease):
         relations.append(relation)
 
     return relations
+
+def similar_medicines(medicine, n=5):
+    query = kgraph.run("""MATCH (a:Medicine {name:"%s"})
+                          MATCH (a)-[]->()-[]->(i)<-[]-()<-[]-(b:Medicine)
+                          WHERE NOT b.name = a.name
+                          RETURN a.name, b.name, count(i) as c
+                          ORDER BY c DESC
+                          LIMIT %d""" % (medicine, n))
+    result = []
+
+    for row in query:
+        values = row.values()
+        result.append({
+            'medicine': values[1],
+            'score': int(values[2])
+        })
+    
+    return result
