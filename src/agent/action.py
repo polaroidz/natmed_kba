@@ -19,7 +19,7 @@ class AnswerAction(Action):
         self.question = question
         self.metadata = {}
         self.answer = {}
-        self.follow_up = {}
+        self.follow_up = []
 
     def act(self):
         if self.question['type'] == 'WHAT_IS':
@@ -53,15 +53,20 @@ class AnswerAction(Action):
 
                 relations = kbase.medicine.relation_disease(medicine, disease)
 
-                self.metadata['relation_type'] = 'MEDICINE_TO_DISEASE'
-                self.metadata['groups'] = self.group_relations(relations)
+                if len(relations) > 0:
+                    self.metadata['relation_type'] = 'MEDICINE_TO_DISEASE'
+                    self.metadata['groups'] = self.group_relations(relations)
 
-                sl_group = self.random_select(self.metadata['groups'])
+                    sl_group = random.choice(self.metadata['groups'])
 
-                self.answer['text'] = sl_group['summary']
+                    self.answer['type'] = 'SIMPLE_RELATION'
+                    self.answer['text'] = sl_group['summary']
+                else:
+                    self.answer['type'] = 'NO_SIMPLE_RELATION'
+                    self.answer['text'] = self.no_relation(medicine, disease)
 
-    def random_select(self, collection):
-        return collection[random.randint(0, len(collection) - 1)]
+    def no_relation(self, entity1, entity2):
+        return "There aren't any relations on my knowledge base between {} and {}.".format(entity1, entity2)
 
     def group_relations(self, relations):
         infos = []
@@ -123,20 +128,42 @@ class AnswerAction(Action):
         self.metadata['synonymous'] = kbase.medicine.synonymous(medicine)
         self.metadata['scientific_names'] = kbase.medicine.scientific_names(medicine)
 
+        self.answer['type'] = 'WHAT_IS_MEDICINE'
         self.answer['text'] = summary.first_sentence(info.get('description'))
+
+        self.similar_medicines_followup(info.get('name'))
 
     def what_is_synonymous(self, name):
         medicine = kbase.medicine.from_other_name(name)
         self.metadata['medicine'] = medicine.get('name')
+        
+        self.answer['type'] = 'WHAT_IS_SYNONYMOUS'
+        self.answer['answer'] = "{} is a synonymous of {}.".format(name, medicine.get('name'))
     
+        self.similar_medicines_followup(medicine.get('name'))
+
+    def similar_medicines_followup(self, medicine, k=5):
+        similars = kbase.medicine.similar_medicines(medicine, k*2)
+        
+        random.shuffle(similars)
+
+        for e in similars[:k]:
+            self.follow_up.append({
+                'type': 'WHAT_IS',
+                'entities': [
+                    { 'type': 'Medicine', 'id': e['medicine'] }
+                ],
+                'question': "What is {}?".format(e['medicine'])
+            })
+
     def is_synonymous(self, _class):
         return _class == 'Synonymous' or _class == 'ScientificName'
 
     def to_json(self):
         obj = { 
+            'answer': self.answer,
             'question': self.question, 
             'metadata': self.metadata,
-            'answer': self.answer,
             'follow_up': self.follow_up }
 
         return json.dumps(obj)
