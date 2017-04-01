@@ -64,6 +64,10 @@ class AnswerAction(Action):
                 else:
                     self.answer['type'] = 'NO_SIMPLE_RELATION'
                     self.answer['text'] = self.no_relation(medicine, disease)
+                
+                self.similar_medicines_followup(medicine)
+                self.medicine_diseases_followup(medicine)
+                self.disease_medicines_followup(disease)
 
     def no_relation(self, entity1, entity2):
         return "There aren't any relations on my knowledge base between {} and {}.".format(entity1, entity2)
@@ -132,6 +136,7 @@ class AnswerAction(Action):
         self.answer['text'] = summary.first_sentence(info.get('description'))
 
         self.similar_medicines_followup(info.get('name'))
+        self.medicine_diseases_followup(info.get('name'))
 
     def what_is_synonymous(self, name):
         medicine = kbase.medicine.from_other_name(name)
@@ -141,6 +146,7 @@ class AnswerAction(Action):
         self.answer['answer'] = "{} is a synonymous of {}.".format(name, medicine.get('name'))
     
         self.similar_medicines_followup(medicine.get('name'))
+        self.medicine_diseases_followup(medicine.get('name'))
 
     def similar_medicines_followup(self, medicine, k=5):
         similars = kbase.medicine.similar_medicines(medicine, k*2)
@@ -154,6 +160,36 @@ class AnswerAction(Action):
                     { 'type': 'Medicine', 'id': e['medicine'] }
                 ],
                 'question': "What is {}?".format(e['medicine'])
+            })
+    
+    def medicine_diseases_followup(self, medicine, k=5):
+        diseases = kbase.medicine.medicine_diseases(medicine)
+
+        random.shuffle(diseases)
+
+        for disease in diseases[:k]:
+            self.follow_up.append({
+                'type': 'SIMPLE_RELATION',
+                'entities': [
+                    { 'type': 'Medicine', 'id': medicine },
+                    { 'type': 'Disease', 'id': disease }
+                ],
+                'question': "What is the relation between {} and {}?".format(medicine, disease)
+            })
+    
+    def disease_medicines_followup(self, disease, k=5):
+        medicines = kbase.medicine.disease_medicines(disease)
+
+        random.shuffle(medicines)
+
+        for medicine in medicines[:k]:
+            self.follow_up.append({
+                'type': 'SIMPLE_RELATION',
+                'entities': [
+                    { 'type': 'Medicine', 'id': medicine },
+                    { 'type': 'Disease', 'id': disease }
+                ],
+                'question': "How are {} and {} related?".format(medicine, disease)
             })
 
     def is_synonymous(self, _class):
