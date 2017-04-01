@@ -38,16 +38,28 @@ def match(string):
                         'confidence': round(row['confidence'] * 100)
                     })
 
-                if o['scored'][0]['class'] != 'Medicine' and o['scored'][1]['class'] == 'Medicine' and o['scored'][0]['entity'] == o['scored'][1]['entity']:
-                    aux = o['scored'][0]
-                    o['scored'][0] = o['scored'][1]
-                    o['scored'][1] = aux
+                if o['scored'][0]['class'] != 'Medicine':
+                    idx = has_medicine_equal(o['scored'], o['scored'][0]['entity'])
+
+                    if idx:
+                        aux = o['scored'][0]
+                        o['scored'][0] = o['scored'][idx]
+                        o['scored'][idx] = aux
 
                 res['entities'].append(o)
 
             return res
     return None
 
+def has_medicine_equal(table, entity):
+    idx = 0
+
+    for row in table:
+        if row['class'] == 'Medicine' and row['entity'] == entity:
+            return idx
+        idx += 1
+    
+    return False
 
 def score(entity):
     """ Scores the entity in relation to the entities table
