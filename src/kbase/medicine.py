@@ -51,7 +51,7 @@ def relation_disease(medicine, disease):
 
 def similar_medicines(medicine, n=5):
     query = kgraph.run("""MATCH (a:Medicine {name:"%s"})
-                          MATCH (a)-[]->()-[]->(i)<-[]-()<-[]-(b:Medicine)
+                          MATCH (a)-[]->()<-[]-(i:Reference)-[]->()<-[]-(b:Medicine)
                           WHERE NOT b.name = a.name
                           RETURN a.name, b.name, count(i) as c
                           ORDER BY c DESC
@@ -66,3 +66,18 @@ def similar_medicines(medicine, n=5):
         })
     
     return result
+
+def medicine_diseases(medicine):
+    query = kgraph.run("""MATCH (a:Medicine {name:"%s"})
+                          MATCH (a)-[]->()-[]->(b:Disease)
+                          RETURN b.id""" % medicine)
+    
+    return [id.values()[0] for id in query]
+
+def disease_medicines(disease):
+    query = kgraph.run("""MATCH (a:Disease {id:"%s"})
+                          MATCH (a)<-[]-()<-[]-(b:Medicine)
+                          RETURN b.name, count(b.name) as c
+                          ORDER BY c DESC""" % disease)
+
+    return [e.values()[0] for e in query]
