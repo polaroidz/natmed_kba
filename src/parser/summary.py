@@ -11,6 +11,8 @@ LOWER_BOUND = .20
 # duplicate sentence
 UPPER_BOUND = .90
 
+PUNCT_CHARS = [',', '.', '(', ')', '[', ']', '{', '}', '!', '?', '&', '-', '$', '%']
+
 def is_unimportant(word):
     """Decides if a word is ok to toss out for the sentence comparisons"""
     return word in ['.', '!', ',', ] or '\'' in word or word in stop_words
@@ -51,7 +53,11 @@ def summarize_block(block):
         return None
     
     sents = nltk.sent_tokenize(block)
-    
+
+    # TODO: Fix it. NOW!
+    if sents[0] == 'See detailed evidence summary\n.':
+        del sents[0]
+
     word_sents = list(map(nltk.word_tokenize, sents))
     
     d = dict((compute_score(word_sent, word_sents), sent)
@@ -70,7 +76,32 @@ def tags_to_sent(tags):
     for p in ['(', '[', '{']:
         sent = sent.replace(p + " ", " " + p)
     
-    return sent + '.'
+    return sent.strip() + '.'
+
+def trim_summary_start(tags):
+    first_ok = False
+    
+    while not first_ok:
+        if tags[0][1] in ['RB'] + PUNCT_CHARS:
+            del tags[0]
+        else:
+            first_ok = True
+    
+    if tags[-1][1] in PUNCT_CHARS:
+        del tags[-1]
+    
+    return tags
+
+def trim_summary_end(tags):
+    last_ok = False
+
+    while not last_ok:
+        if tags[-1][1] in ['CD'] + PUNCT_CHARS:
+            del tags[-1]
+        else:
+            last_ok = True
+    
+    return tags
 
 def summarize(text):
     """Returns the sentence that summarizes the text corpus."""
@@ -78,17 +109,9 @@ def summarize(text):
     s_tokens = nltk.word_tokenize(s_sent)
     s_tags = nltk.pos_tag(s_tokens)
     
-    first_ok = False
-    
-    while not first_ok:
-        if s_tags[0][1] in ['RB', '.', ',']:
-            del s_tags[0]
-        else:
-            first_ok = True
-    
-    if s_tags[-1][1] in ['.', ',']:
-        del s_tags[-1]
-    
+    s_tags = trim_summary_start(s_tags)
+    s_tags = trim_summary_end(s_tags)
+
     compiled_sent = tags_to_sent(s_tags)
     
     return compiled_sent
