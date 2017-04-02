@@ -77,7 +77,7 @@ class AnswerAction(Action):
         dosings = []
 
         for relation in relations:
-            if relation['info_label'] == 'DosingInfo':
+            if relation['info']['type'] == 'DosingInfo':
                 dosings.append(relation)
             else:
                 infos.append(relation)
