@@ -5,3 +5,4 @@ Knowledge-Based Agent layer of the Natmed Project Infraestructure. It will be ab
 It uses the Agent Archicture described on the Peter Norvig Book about Artificial Inteligence:
 
 ![alt tag](https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/IntelligentAgent-SimpleReflex.png/408px-IntelligentAgent-SimpleReflex.png)
+
